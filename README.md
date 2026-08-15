@@ -11,6 +11,7 @@ Samodzielne archiwum wydarzeń THE BOYZ przeznaczone do publikacji jako GitHub P
 - filtrowanie według roku, miesiąca i członka zespołu,
 - wyszukiwanie po dacie `YYMMDD`, tytule wydarzenia lub nazwie pliku,
 - miniaturka wydarzenia pobierana z jego galerii zdjęć albo filmu,
+- automatyczna typograficzna miniaturka z nazwą wydarzenia lub pliku, jeśli obraz z Google Drive nie może się załadować,
 - galerie zdjęć i filmów z linkami `View` i `Download`,
 - filmy otwierane w odtwarzaczu Google Drive,
 - automatyczna synchronizacja dwa razy dziennie.
