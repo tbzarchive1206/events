@@ -53,11 +53,17 @@ function representative(event: ArchiveEvent) {
   return event.media.find((item) => item.kind === "image") || event.media.find((item) => item.kind === "video") || null;
 }
 
+function DriveThumbnail({ id, label }: { id?: string; label: string }) {
+  const [failed, setFailed] = useState(!id);
+  if (failed || !id) return <span className="generated-thumbnail" role="img" aria-label={`Generated preview: ${label}`}><span>{label}</span></span>;
+  return <img src={thumbnailUrl(id)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+}
+
 function MediaTile({ media }: { media: Media }) {
   const visual = media.kind === "image" || media.kind === "video";
   return <figure className={`media-tile ${media.kind}-tile`}>
     <a className="media-visual" href={fileUrl(media.id)} target="_blank" rel="noreferrer">
-      {visual ? <img src={thumbnailUrl(media.id)} alt="" loading="lazy" /> : <span className="no-cover">{media.kind.toUpperCase()}</span>}
+      {visual ? <DriveThumbnail id={media.id} label={media.name} /> : <DriveThumbnail label={media.name} />}
       {media.kind === "video" && <span className="play-mark">VIDEO / GOOGLE DRIVE ↗</span>}
     </a>
     <div className="image-actions"><span className="file-name" title={media.name}>{media.name}</span><span className="file-action-links"><a href={fileUrl(media.id)} target="_blank" rel="noreferrer">VIEW ↗</a><a href={downloadUrl(media.id)} target="_blank" rel="noreferrer">DOWNLOAD ↓</a></span></div>
@@ -69,7 +75,7 @@ function EventCard({ event, open }: { event: ArchiveEvent; open: () => void }) {
   const firstVideo = event.media.find((item) => item.kind === "video");
   return <article className="card">
     <button className="thumb" onClick={open} aria-label={`Open ${event.title}`}>
-      {cover ? <img src={thumbnailUrl(cover.id)} alt="" loading="lazy" /> : <span className="no-cover">NO PREVIEW</span>}
+      <DriveThumbnail id={cover?.id} label={event.title} />
       <span className="number">{formatDate(event.date)}</span><span className="photo-count">{event.media.length} FILES</span>
     </button>
     <div className="card-info"><span className="eyebrow">{event.members.map(displayMember).join(" · ") || "THE BOYZ EVENT"}</span><h2>{event.title}</h2>
