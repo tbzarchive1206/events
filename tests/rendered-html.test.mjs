@@ -15,5 +15,6 @@ test("builds the self-contained Events archive for GitHub Pages", async () => {
   assert.match(script, /ALL MONTHS/);
   assert.match(script, /ALL MEMBERS/);
   assert.match(script, /drive\.google\.com\/thumbnail/);
+  assert.match(script, /Generated preview/);
   assert.doesNotMatch(html, /iframe/iu);
 });
