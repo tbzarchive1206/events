@@ -135,7 +135,7 @@ export function EventsArchive({ data }: { data: RawArchive }) {
 }
 
 function Header({ events, media, updated }: { events: number; media: number; updated: string }) {
-  return <header className="masthead"><div className="utility"><a className="brand" href="https://tbzarchive1206.github.io/tbzarchive/">THE BOYZ / FAN ARCHIVE</a><nav><span>EVENTS</span><span>/</span><a href="https://x.com/tbzarchive1206_" target="_blank" rel="noreferrer">TWITTER ↗</a></nav></div><a href="#home"><h1><span className="solid">EVENTS</span><span className="outline">ARCHIVE</span></h1></a><div className="stats"><p><strong>{events}</strong> EVENTS</p><i /><p><strong>{media.toLocaleString("en-US")}</strong> MEDIA FILES</p><i /><p>UPDATED <strong>{new Date(updated).toLocaleDateString("en-GB")}</strong></p></div></header>;
+  return <header className="masthead"><div className="utility"><a className="brand" href="https://tbzarchive.com">THE BOYZ / FAN ARCHIVE</a><nav><span>EVENTS</span><span>/</span><a href="https://x.com/tbzarchive1206_" target="_blank" rel="noreferrer">TWITTER ↗</a></nav></div><a href="#home"><h1><span className="solid">EVENTS</span><span className="outline">ARCHIVE</span></h1></a><div className="stats"><p><strong>{events}</strong> EVENTS</p><i /><p><strong>{media.toLocaleString("en-US")}</strong> MEDIA FILES</p><i /><p>UPDATED <strong>{new Date(updated).toLocaleDateString("en-GB")}</strong></p></div></header>;
 }
 
 function Footer({ sourceId }: { sourceId: string }) { return <footer><span>© THE BOYZ FAN ARCHIVE</span><a href={folderUrl(sourceId)} target="_blank" rel="noreferrer">SOURCE FOLDER ↗</a><a href="#top">BACK TO TOP ↑</a></footer>; }
