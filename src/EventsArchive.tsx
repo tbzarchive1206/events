@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { filesForFolder } from "../scripts/archive-tools.mjs";
 
-type RawNode = { id: string; name: string; mimeType: string; type: "file" | "folder"; size?: string | null; path: string[] };
+type RawNode = { id: string; name: string; mimeType: string; type: "file" | "folder"; size?: string | null; path: string[]; folderIds?: string[] };
 export type RawArchive = { generatedAt: string; sourceFolderId: string; nodes: RawNode[] };
 type MediaKind = "video" | "image" | "audio" | "other";
 type Media = RawNode & { kind: MediaKind };
@@ -32,8 +33,7 @@ function buildEvents(data: RawArchive): ArchiveEvent[] {
   return data.nodes
     .filter((node) => node.type === "folder" && node.path.length === 1)
     .map((folder) => {
-      const media = data.nodes
-        .filter((node) => node.type === "file" && node.path[1] === folder.name)
+      const media = filesForFolder(data, folder)
         .map((node) => ({ ...node, kind: kindOf(node.mimeType) }));
       const date = dateCode(folder.name);
       return {

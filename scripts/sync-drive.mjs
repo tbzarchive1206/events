@@ -24,7 +24,7 @@ async function listFolder(folderId) {
   return files;
 }
 
-let frontier = [{ id: ROOT_FOLDER_ID, title: ROOT_TITLE, path: [] }];
+let frontier = [{ id: ROOT_FOLDER_ID, title: ROOT_TITLE, path: [], folderIds: [] }];
 const nodes = [];
 while (frontier.length) {
   const next = [];
@@ -34,8 +34,9 @@ while (frontier.length) {
     for (const { folder, files } of results) for (const file of files) {
       const isFolder = file.mimeType === "application/vnd.google-apps.folder";
       const node = { id: file.id, name: file.name, mimeType: file.mimeType, type: isFolder ? "folder" : "file", size: file.size || null, createdTime: file.createdTime || null, modifiedTime: file.modifiedTime || null, path: [...folder.path, folder.title] };
+      node.folderIds = [...folder.folderIds, folder.id];
       nodes.push(node);
-      if (isFolder) next.push({ id: file.id, title: file.name, path: node.path });
+      if (isFolder) next.push({ id: file.id, title: file.name, path: node.path, folderIds: node.folderIds });
     }
   }
   frontier = next;

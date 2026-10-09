@@ -5,6 +5,11 @@ export function topLevelFolders(raw) {
   return raw.nodes.filter((node) => node.type === "folder" && node.path.length === 1);
 }
 
+export function filesForFolder(raw, folder) {
+  return raw.nodes.filter((node) => node.type === "file" &&
+    (Array.isArray(node.folderIds) ? node.folderIds.includes(folder.id) : node.path[1] === folder.name));
+}
+
 export function summarizeRaw(raw) {
   return {
     nodes: raw.nodes.length,
