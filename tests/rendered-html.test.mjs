@@ -28,12 +28,20 @@ test("renders nested folders and playable inline videos without video thumbnails
   const server = await createServer({ server: { middlewareMode: true }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } });
   const previousLocation = globalThis.location;
   try {
-    const { EventsArchive, MediaTile } = await server.ssrLoadModule("/src/EventsArchive.tsx");
+    const { EventsArchive, MediaTile, MediaViewer } = await server.ssrLoadModule("/src/EventsArchive.tsx");
     const video = renderToStaticMarkup(createElement(MediaTile, { media: { id: "video", name: "clip.mp4", mimeType: "video/mp4", type: "file", kind: "video", path: [] } }));
-    assert.match(video, /<iframe/);
-    assert.match(video, /https:\/\/drive.google.com\/file\/d\/video\/preview/);
-    assert.match(video, /allowFullScreen|allowfullscreen/);
+    assert.match(video, /Play clip.mp4 in large viewer/);
+    assert.doesNotMatch(video, /<iframe/);
     assert.doesNotMatch(video, /<img|thumbnail\?/);
+    const viewer = renderToStaticMarkup(createElement(MediaViewer, { media: { id: "video", name: "clip.mp4", kind: "video", videoMediaMetadata: { width: 1080, height: 1920 } }, close() {} }));
+    assert.match(viewer, /<dialog/);
+    assert.match(viewer, /https:\/\/drive.google.com\/file\/d\/video\/preview/);
+    assert.match(viewer, /allowFullScreen|allowfullscreen/);
+    assert.match(viewer, /--media-ratio:0.5625/);
+    const photo = renderToStaticMarkup(createElement(MediaTile, { media: { id: "photo", name: "photo.jpg", kind: "image" } }));
+    assert.match(photo, /Enlarge photo.jpg/);
+    const photoViewer = renderToStaticMarkup(createElement(MediaViewer, { media: { id: "photo", name: "photo.jpg", kind: "image" }, close() {} }));
+    assert.match(photoViewer, /class="viewer-photo"/);
     const event = { id: "event", name: "Kevin at New Era Seongsu Flagship Store Opening", mimeType: "application/vnd.google-apps.folder", type: "folder", path: ["EVENTS"] };
     const data = { generatedAt: "2026-10-09T00:00:00Z", sourceFolderId: "root", nodes: [event,
       { id: "photos", name: "Photos", mimeType: "application/vnd.google-apps.folder", type: "folder", path: ["EVENTS", event.name] },
@@ -43,8 +51,10 @@ test("renders nested folders and playable inline videos without video thumbnails
     globalThis.location = { hash: "#event/event" };
     const parent = renderToStaticMarkup(createElement(EventsArchive, { data }));
     assert.match(parent, /aria-label="Subfolders"/);
-    assert.match(parent, /thumbnail\?id=photo/);
-    assert.match(parent, /file\/d\/video\/preview/);
+    const subfolders = parent.match(/<section class="subfolders"[\s\S]*?<\/section>/)[0];
+    assert.doesNotMatch(subfolders, /<img|generated-thumbnail/);
+    assert.match(subfolders, /Photos/);
+    assert.match(parent, /Play clip.mp4 in large viewer/);
     assert.doesNotMatch(parent, /thumbnail\?id=video/);
     globalThis.location = { hash: "#event/event/folder/photos" };
     const nested = renderToStaticMarkup(createElement(EventsArchive, { data }));

@@ -29,14 +29,22 @@ Test skryptu synchronizacji symuluje API i nie wymaga klucza ani dostępu do Dri
 Strona wydarzenia odwzorowuje kolejne poziomy folderów Drive. Kafelki podfolderów
 prowadzą do ich zawartości; ścieżka nad galerią umożliwia powrót do folderów
 nadrzędnych. W każdym widoku widać pliki bezpośrednio w danym folderze.
-Okładka wydarzenia lub podfolderu pochodzi wyłącznie ze zdjęcia, także z głębszych
-podfolderów. Gdy brak zdjęć lub miniatura nie jest dostępna, wyświetlana jest
-plansza z nazwą; film nigdy nie zastępuje zdjęcia okładki.
+Okładka wydarzenia pochodzi wyłącznie ze zdjęcia, także z głębszych podfolderów.
+Gdy brak zdjęć lub miniatura nie jest dostępna, wyświetlana jest plansza z nazwą;
+film nigdy nie zastępuje zdjęcia okładki. Podfoldery mają proste białe kafelki
+z niebieską ramką, nazwą i liczbą plików, bez zdjęć i okładek.
 
-Filmy mają osadzony odtwarzacz Google Drive na stronie (`/preview`), z obsługą
-pełnego ekranu. Dostęp do odtwarzania zależy od uprawnień pliku na Drive;
-link VIEW pozostaje dostępny. Nowo przesłany film może wymagać przetworzenia
-przez Google przed odtworzeniem.
+Kliknięcie PLAY VIDEO otwiera duże okno nad stroną z odtwarzaczem Google Drive
+(`/preview`), z obsługą pełnego ekranu. Odtwarzacz nie jest wciskany w mały
+kafelek galerii. Kliknięcie zdjęcia również otwiera duży podgląd; zdjęcia zachowują
+proporcje, bez kadrowania i rozciągania. Okno można zamknąć przyciskiem CLOSE lub
+klawiszem Escape. Zamknięcie usuwa odtwarzacz i zatrzymuje film.
+Synchronizacja pobiera wymiary zdjęć i filmów, aby dopasować proporcje okna do
+oryginału. Po aktualizacji należy uruchomić Sync Events Archive, aby uzupełnić
+wymiary w istniejącym indeksie. Pliki bez wymiarów nadal otwierają się w dużym
+oknie; sam odtwarzacz Drive dopasowuje obraz bez kadrowania.
+Dostęp do odtwarzania zależy od uprawnień pliku na Drive; link VIEW pozostaje
+dostępny. Nowo przesłany film może wymagać przetworzenia przez Google.
 
 Galeria ma kolejność od najstarszych do najnowszych, czytaną w rzędach od lewej
 do prawej. Data pochodzi kolejno z metadanych wykonania zdjęcia na Drive,

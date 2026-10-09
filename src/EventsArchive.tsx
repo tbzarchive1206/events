@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { filesForFolder, childrenForFolder, photoCover, sortMedia, membersOf } from "../scripts/archive-tools.mjs";
 
-type RawNode = { id: string; name: string; mimeType: string; type: "file" | "folder"; size?: string | null; path: string[]; folderIds?: string[]; createdTime?: string | null; modifiedTime?: string | null; imageMediaMetadata?: { time?: string } };
+type RawNode = { id: string; name: string; mimeType: string; type: "file" | "folder"; size?: string | null; path: string[]; folderIds?: string[]; createdTime?: string | null; modifiedTime?: string | null; imageMediaMetadata?: { time?: string; width?: number; height?: number }; videoMediaMetadata?: { width?: number; height?: number } };
 export type RawArchive = { generatedAt: string; sourceFolderId: string; nodes: RawNode[] };
 type MediaKind = "video" | "image" | "audio" | "other";
 type Media = RawNode & { kind: MediaKind };
@@ -53,12 +53,32 @@ function DriveThumbnail({ id, label }: { id?: string; label: string }) {
   return <img src={thumbnailUrl(id)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
-export function MediaTile({ media }: { media: Media }) {
+export function MediaViewer({ media, close }: { media: Media; close: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const dimensions = media.kind === "video" ? media.videoMediaMetadata : media.imageMediaMetadata;
+  const ratio = dimensions?.width && dimensions?.height ? dimensions.width / dimensions.height : undefined;
+  useEffect(() => {
+    const element = dialog.current!;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    element.showModal();
+    return () => { element.close(); document.body.style.overflow = previousOverflow; };
+  }, []);
+  return <dialog ref={dialog} className="media-dialog" aria-label={media.name} onCancel={close} onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
+    <div className="viewer-toolbar"><span>{media.name}</span><button onClick={close} autoFocus aria-label="Close media viewer">CLOSE ×</button></div>
+    <div className={`viewer-stage ${ratio ? "known-ratio" : "unknown-ratio"}`} style={ratio ? { "--media-ratio": ratio } as CSSProperties : undefined}>
+      {media.kind === "video" ? <iframe className="viewer-video" src={`https://drive.google.com/file/d/${encodeURIComponent(media.id)}/preview`} title={`Play ${media.name}`} allow="autoplay; fullscreen" allowFullScreen /> :
+        <img className="viewer-photo" src={`${thumbnailUrl(media.id).replace("w1200", "w2400")}`} alt={media.name} />}
+    </div>
+    <div className="viewer-links"><a href={fileUrl(media.id)} target="_blank" rel="noreferrer">OPEN IN DRIVE ↗</a><a href={downloadUrl(media.id)} target="_blank" rel="noreferrer">DOWNLOAD ↓</a></div>
+  </dialog>;
+}
+
+export function MediaTile({ media, open = () => {} }: { media: Media; open?: () => void }) {
   return <figure className={`media-tile ${media.kind}-tile`}>
-    {media.kind === "video" ? <iframe className="video-player" src={`https://drive.google.com/file/d/${encodeURIComponent(media.id)}/preview`} title={`Play ${media.name}`} loading="lazy" allow="autoplay; fullscreen" allowFullScreen /> :
-      <a className="media-visual" href={fileUrl(media.id)} target="_blank" rel="noreferrer">
-        <DriveThumbnail id={media.kind === "image" ? media.id : undefined} label={media.name} />
-      </a>}
+    {media.kind === "video" ? <button className="video-launch" onClick={open} aria-label={`Play ${media.name} in large viewer`}><span className="video-symbol" aria-hidden="true">▶</span><strong>PLAY VIDEO</strong><span>OPEN LARGE PLAYER ↗</span></button> : media.kind === "image" ?
+      <button className="media-visual photo-launch" onClick={open} aria-label={`Enlarge ${media.name}`}><DriveThumbnail id={media.id} label={media.name} /></button> :
+      <a className="media-visual" href={fileUrl(media.id)} target="_blank" rel="noreferrer"><DriveThumbnail label={media.name} /></a>}
     <div className="image-actions"><span className="file-name" title={media.name}>{media.name}</span><span className="file-action-links"><a href={fileUrl(media.id)} target="_blank" rel="noreferrer">VIEW ↗</a><a href={downloadUrl(media.id)} target="_blank" rel="noreferrer">DOWNLOAD ↓</a></span></div>
   </figure>;
 }
@@ -92,6 +112,8 @@ export function EventsArchive({ data }: { data: RawArchive }) {
   const [sort, setSort] = useState("desc");
   const [mediaFilter, setMediaFilter] = useState("all");
   const [shown, setShown] = useState(pageSize);
+  const [activeMedia, setActiveMedia] = useState<Media | null>(null);
+  useEffect(() => { setActiveMedia(null); }, [selectedId, selectedFolderId]);
   useEffect(() => { const change = () => { setSelectedId(parseEventId()); setSelectedFolderId(parseFolderId()); setMediaFilter("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }; window.addEventListener("hashchange", change); return () => window.removeEventListener("hashchange", change); }, []);
 
   const selectedEvent = events.find((event) => event.id === selectedId);
@@ -125,12 +147,12 @@ export function EventsArchive({ data }: { data: RawArchive }) {
         <nav className="folder-breadcrumbs" aria-label="Folder path">{ancestors.filter((folder) => folder.id !== currentFolder.id).map((folder) => <button key={folder.id} onClick={() => navigateFolder(folder)}>{folder.name} →</button>)}<span aria-current="page">{currentFolder.name}</span></nav>
         {folders.length > 0 && <section className="subfolders" aria-label="Subfolders">{folders.map((folder) => {
           const files = sortMedia(filesForFolder(data, folder));
-          const cover = photoCover(files);
-          return <button className="folder-card" key={folder.id} onClick={() => navigateFolder(folder)}><DriveThumbnail id={cover?.id} label={folder.name} /><strong>{folder.name}</strong><span>{files.length} FILES · OPEN FOLDER →</span></button>;
+          return <button className="folder-card" key={folder.id} onClick={() => navigateFolder(folder)}><span className="folder-label">SUBFOLDER ↗</span><strong>{folder.name}</strong><span>{files.length} FILES · OPEN FOLDER →</span></button>;
         })}</section>}
         <div className="member-filters"><label>MEDIA TYPE<select value={mediaFilter} onChange={(event) => setMediaFilter(event.target.value)}><option value="all">ALL MEDIA</option><option value="video">VIDEO</option><option value="image">PHOTOS</option><option value="audio">AUDIO</option><option value="other">OTHER FILES</option></select></label><div className="blank-filter" /><p>{media.length} RESULTS · OLDEST FIRST</p></div>
         <div className="member-period"><p>MEDIA GALLERY</p><span>GOOGLE DRIVE SOURCE</span></div>
-        {media.length ? <div className="media-grid">{media.map((item) => <MediaTile key={item.id} media={item} />)}</div> : <div className="empty"><strong>NO MEDIA</strong>{folders.length ? "OPEN A SUBFOLDER TO SEE ITS MEDIA." : mediaFilter === "all" ? "THIS FOLDER IS CURRENTLY EMPTY." : "NO FILES MATCH THIS MEDIA TYPE."}</div>}
+        {media.length ? <div className="media-grid">{media.map((item) => <MediaTile key={item.id} media={item} open={() => setActiveMedia(item)} />)}</div> : <div className="empty"><strong>NO MEDIA</strong>{folders.length ? "OPEN A SUBFOLDER TO SEE ITS MEDIA." : mediaFilter === "all" ? "THIS FOLDER IS CURRENTLY EMPTY." : "NO FILES MATCH THIS MEDIA TYPE."}</div>}
+        {activeMedia && <MediaViewer key={activeMedia.id} media={activeMedia} close={() => setActiveMedia(null)} />}
       </section><Footer sourceId={data.sourceFolderId} /></main>;
   }
 

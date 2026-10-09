@@ -27,7 +27,7 @@ test("Drive sync follows pagination and nested folders and replaces the previous
             ? { files: [directory("empty", "Empty folder")] }
             : { files: [directory("event", "Backstage")], nextPageToken: "page2" };
         } else if (folder === "event") {
-          data = { files: [directory("nested", "Photos"), { id: "video", name: "new.mp4", mimeType: "video/mp4" }] };
+          data = { files: [directory("nested", "Photos"), { id: "video", name: "new.mp4", mimeType: "video/mp4", videoMediaMetadata: { width: 1080, height: 1920 } }] };
         } else if (folder === "nested") {
           data = { files: [{ id: "photo", name: "new.jpg", mimeType: "image/jpeg", imageMediaMetadata: { time: "2026:10:09 10:00:00Z" } }] };
         } else if (folder === "empty") data = { files: [] };
@@ -46,6 +46,7 @@ test("Drive sync follows pagination and nested folders and replaces the previous
     assert.equal(raw.nodes.some((node) => node.id === "deleted"), false);
     assert.deepEqual(raw.nodes.find((node) => node.id === "photo").folderIds, [ROOT_FOLDER_ID, "event", "nested"]);
     assert.equal(raw.nodes.find((node) => node.id === "photo").imageMediaMetadata.time, "2026:10:09 10:00:00Z");
+    assert.deepEqual(raw.nodes.find((node) => node.id === "video").videoMediaMetadata, { width: 1080, height: 1920 });
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
