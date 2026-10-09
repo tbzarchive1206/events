@@ -29,7 +29,7 @@ test("Drive sync follows pagination and nested folders and replaces the previous
         } else if (folder === "event") {
           data = { files: [directory("nested", "Photos"), { id: "video", name: "new.mp4", mimeType: "video/mp4" }] };
         } else if (folder === "nested") {
-          data = { files: [{ id: "photo", name: "new.jpg", mimeType: "image/jpeg" }] };
+          data = { files: [{ id: "photo", name: "new.jpg", mimeType: "image/jpeg", imageMediaMetadata: { time: "2026:10:09 10:00:00Z" } }] };
         } else if (folder === "empty") data = { files: [] };
         else throw new Error("Unexpected folder " + folder);
         return { ok: true, json: async () => data };
@@ -45,6 +45,7 @@ test("Drive sync follows pagination and nested folders and replaces the previous
     assert.deepEqual(filesForFolder(raw, raw.nodes[0]).map((file) => file.id), ["video", "photo"]);
     assert.equal(raw.nodes.some((node) => node.id === "deleted"), false);
     assert.deepEqual(raw.nodes.find((node) => node.id === "photo").folderIds, [ROOT_FOLDER_ID, "event", "nested"]);
+    assert.equal(raw.nodes.find((node) => node.id === "photo").imageMediaMetadata.time, "2026:10:09 10:00:00Z");
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

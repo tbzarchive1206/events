@@ -23,3 +23,29 @@ nazwy nie mieszają plików. Starszy indeks jest obsługiwany do następnej sync
 Testy sprawdzają strukturę danych i zachowanie na kontrolowanych przykładach,
 zamiast wymagać konkretnych nazw, pustych folderów lub typów plików na Drive.
 Test skryptu synchronizacji symuluje API i nie wymaga klucza ani dostępu do Drive.
+
+## Galerie, podfoldery i filmy
+
+Strona wydarzenia odwzorowuje kolejne poziomy folderów Drive. Kafelki podfolderów
+prowadzą do ich zawartości; ścieżka nad galerią umożliwia powrót do folderów
+nadrzędnych. W każdym widoku widać pliki bezpośrednio w danym folderze.
+Okładka wydarzenia lub podfolderu pochodzi wyłącznie ze zdjęcia, także z głębszych
+podfolderów. Gdy brak zdjęć lub miniatura nie jest dostępna, wyświetlana jest
+plansza z nazwą; film nigdy nie zastępuje zdjęcia okładki.
+
+Filmy mają osadzony odtwarzacz Google Drive na stronie (`/preview`), z obsługą
+pełnego ekranu. Dostęp do odtwarzania zależy od uprawnień pliku na Drive;
+link VIEW pozostaje dostępny. Nowo przesłany film może wymagać przetworzenia
+przez Google przed odtworzeniem.
+
+Galeria ma kolejność od najstarszych do najnowszych, czytaną w rzędach od lewej
+do prawej. Data pochodzi kolejno z metadanych wykonania zdjęcia na Drive,
+znacznika Unix w nazwie eksportowanego pliku, daty YYYYMMDD (opcjonalnie z czasem)
+w nazwie, daty utworzenia pliku na Drive lub daty modyfikacji. Brak dat oznacza
+umieszczenie na końcu, w naturalnej kolejności nazw i identyfikatorów.
+Data przesłania na Drive nie musi być datą wykonania — archiwum nie zgaduje
+daty wykonania, jeśli jej nie udostępniają metadane lub nazwa.
+
+Nazwy członków w tytule wydarzenia mają pierwszeństwo przed nazwami plików.
+Nazwa marki `New Era` jest pomijana przy rozpoznawaniu NEW/Chanhee; rzeczywiste
+wzmianki NEW, Chanhee, 찬희 i 뉴 nadal są rozpoznawane.

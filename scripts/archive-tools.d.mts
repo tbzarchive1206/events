@@ -1,6 +1,12 @@
 type Node = { id: string; name: string; type: string; path: string[]; folderIds?: string[] };
+type MediaNode = { id: string; name: string; mimeType: string; createdTime?: string | null; modifiedTime?: string | null; imageMediaMetadata?: { time?: string } };
 export const ROOT_FOLDER_ID: string;
 export const ROOT_TITLE: string;
 export function topLevelFolders<T extends Node>(raw: { nodes: T[] }): T[];
 export function filesForFolder<T extends Node>(raw: { nodes: T[] }, folder: Node): T[];
+export function childrenForFolder<T extends Node>(raw: { nodes: T[] }, folder: Node): T[];
+export function photoCover<T extends MediaNode>(media: T[]): T | null;
+export function sortMedia<T extends MediaNode>(media: T[]): T[];
+export function mediaTime(node: MediaNode): number;
+export function membersOf(value: string): string[];
 export function summarizeRaw(raw: { nodes: Node[] }): { nodes: number; folders: number; files: number; topFolders: number };

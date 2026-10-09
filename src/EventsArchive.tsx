@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { filesForFolder } from "../scripts/archive-tools.mjs";
+import { filesForFolder, childrenForFolder, photoCover, sortMedia, membersOf } from "../scripts/archive-tools.mjs";
 
-type RawNode = { id: string; name: string; mimeType: string; type: "file" | "folder"; size?: string | null; path: string[]; folderIds?: string[] };
+type RawNode = { id: string; name: string; mimeType: string; type: "file" | "folder"; size?: string | null; path: string[]; folderIds?: string[]; createdTime?: string | null; modifiedTime?: string | null; imageMediaMetadata?: { time?: string } };
 export type RawArchive = { generatedAt: string; sourceFolderId: string; nodes: RawNode[] };
 type MediaKind = "video" | "image" | "audio" | "other";
 type Media = RawNode & { kind: MediaKind };
@@ -9,18 +9,11 @@ type ArchiveEvent = { id: string; title: string; date: string; year: number; mon
 
 const pageSize = 24;
 const memberOrder = ["SANGYEON", "JACOB", "YOUNGHOON", "HYUNJAE", "JUYEON", "KEVIN", "Q", "SUNWOO", "ERIC", "HAKNYEON", "NEW"];
-const memberPatterns: [string, RegExp][] = [
-  ["SANGYEON", /SANGYEON|상연/iu], ["JACOB", /JACOB|제이콥/iu], ["YOUNGHOON", /YOUNGHOON|영훈/iu],
-  ["HYUNJAE", /HYUNJAE|현재/iu], ["JUYEON", /JUYEON|주연/iu], ["KEVIN", /KEVIN|케빈/iu],
-  ["Q", /(?:^|[^A-Z])Q(?:[^A-Z]|$)|CHANGMIN|창민|큐/iu], ["SUNWOO", /SUNWOO|선우/iu], ["ERIC", /ERIC|에릭/iu],
-  ["HAKNYEON", /HAKNYEON|JUHAKNYEON|학년/iu], ["NEW", /(?:^|[^A-Z])NEW(?:[^A-Z]|$)|CHANHEE|찬희|(?:^|[^\p{L}\p{N}])뉴(?:[^\p{L}\p{N}]|$)/iu],
-];
 const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
 
 const normalize = (value = "") => value.normalize("NFKD").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 const cleanTitle = (value: string) => value.replace(/^\s*\d{6}\s*/u, "").trim();
 const dateCode = (value: string) => value.match(/^\s*([12]\d{5})(?=\D|$)/u)?.[1] || "";
-const membersOf = (value: string) => memberPatterns.filter(([, pattern]) => pattern.test(value)).map(([member]) => member);
 const displayMember = (value: string) => value === "HAKNYEON" ? "HAKNYEON (2017–2025)" : value === "NEW" ? "NEW (2017–2026)" : value;
 const formatDate = (value: string) => value ? `20${value.slice(0, 2)}.${value.slice(2, 4)}.${value.slice(4, 6)}` : "DATE UNKNOWN";
 const folderUrl = (id: string) => `https://drive.google.com/drive/folders/${encodeURIComponent(id)}`;
@@ -33,7 +26,7 @@ function buildEvents(data: RawArchive): ArchiveEvent[] {
   return data.nodes
     .filter((node) => node.type === "folder" && node.path.length === 1)
     .map((folder) => {
-      const media = filesForFolder(data, folder)
+      const media = sortMedia(filesForFolder(data, folder))
         .map((node) => ({ ...node, kind: kindOf(node.mimeType) }));
       const date = dateCode(folder.name);
       return {
@@ -42,7 +35,7 @@ function buildEvents(data: RawArchive): ArchiveEvent[] {
         date,
         year: date ? 2000 + Number(date.slice(0, 2)) : 0,
         month: date ? Number(date.slice(2, 4)) : 0,
-        members: membersOf(`${folder.name} ${media.map((item) => item.name).join(" ")}`),
+        members: membersOf(folder.name).length ? membersOf(folder.name) : membersOf(media.map((item) => item.name).join(" ")),
         media,
       };
     })
@@ -50,22 +43,22 @@ function buildEvents(data: RawArchive): ArchiveEvent[] {
 }
 
 function representative(event: ArchiveEvent) {
-  return event.media.find((item) => item.kind === "image") || event.media.find((item) => item.kind === "video") || null;
+  return photoCover(event.media);
 }
 
 function DriveThumbnail({ id, label }: { id?: string; label: string }) {
   const [failed, setFailed] = useState(!id);
+  useEffect(() => setFailed(!id), [id]);
   if (failed || !id) return <span className="generated-thumbnail" role="img" aria-label={`Generated preview: ${label}`}><span>{label}</span></span>;
   return <img src={thumbnailUrl(id)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
-function MediaTile({ media }: { media: Media }) {
-  const visual = media.kind === "image" || media.kind === "video";
+export function MediaTile({ media }: { media: Media }) {
   return <figure className={`media-tile ${media.kind}-tile`}>
-    <a className="media-visual" href={fileUrl(media.id)} target="_blank" rel="noreferrer">
-      {visual ? <DriveThumbnail id={media.id} label={media.name} /> : <DriveThumbnail label={media.name} />}
-      {media.kind === "video" && <span className="play-mark">VIDEO / GOOGLE DRIVE ↗</span>}
-    </a>
+    {media.kind === "video" ? <iframe className="video-player" src={`https://drive.google.com/file/d/${encodeURIComponent(media.id)}/preview`} title={`Play ${media.name}`} loading="lazy" allow="autoplay; fullscreen" allowFullScreen /> :
+      <a className="media-visual" href={fileUrl(media.id)} target="_blank" rel="noreferrer">
+        <DriveThumbnail id={media.kind === "image" ? media.id : undefined} label={media.name} />
+      </a>}
     <div className="image-actions"><span className="file-name" title={media.name}>{media.name}</span><span className="file-action-links"><a href={fileUrl(media.id)} target="_blank" rel="noreferrer">VIEW ↗</a><a href={downloadUrl(media.id)} target="_blank" rel="noreferrer">DOWNLOAD ↓</a></span></div>
   </figure>;
 }
@@ -80,16 +73,18 @@ function EventCard({ event, open }: { event: ArchiveEvent; open: () => void }) {
     </button>
     <div className="card-info"><span className="eyebrow">{event.members.map(displayMember).join(" · ") || "THE BOYZ EVENT"}</span><h2>{event.title}</h2>
       <div className="meta"><span>YEAR</span><strong>{event.year || "—"}</strong><span>MONTH</span><strong>{event.month ? monthNames[event.month - 1] : "—"}</strong><span>MEDIA</span><strong>{event.media.length} FILES</strong></div>
-      <div className="card-actions">{firstVideo && <a href={fileUrl(firstVideo.id)} target="_blank" rel="noreferrer">WATCH ↗</a>}<button onClick={open}>OPEN EVENT →</button></div>
+      <div className="card-actions">{firstVideo && <button onClick={open}>WATCH ▶</button>}<button onClick={open}>OPEN EVENT →</button></div>
     </div>
   </article>;
 }
 
 function parseEventId() { return location.hash.match(/^#\/?event\/([^/]+)/u)?.[1] || ""; }
+function parseFolderId() { return location.hash.match(/^#\/?event\/[^/]+\/folder\/([^/]+)/u)?.[1] || ""; }
 
 export function EventsArchive({ data }: { data: RawArchive }) {
   const events = useMemo(() => buildEvents(data), [data]);
   const [selectedId, setSelectedId] = useState(parseEventId);
+  const [selectedFolderId, setSelectedFolderId] = useState(parseFolderId);
   const [query, setQuery] = useState("");
   const [yearFilter, setYearFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
@@ -97,7 +92,7 @@ export function EventsArchive({ data }: { data: RawArchive }) {
   const [sort, setSort] = useState("desc");
   const [mediaFilter, setMediaFilter] = useState("all");
   const [shown, setShown] = useState(pageSize);
-  useEffect(() => { const change = () => { setSelectedId(parseEventId()); window.scrollTo({ top: 0, behavior: "smooth" }); }; window.addEventListener("hashchange", change); return () => window.removeEventListener("hashchange", change); }, []);
+  useEffect(() => { const change = () => { setSelectedId(parseEventId()); setSelectedFolderId(parseFolderId()); setMediaFilter("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }; window.addEventListener("hashchange", change); return () => window.removeEventListener("hashchange", change); }, []);
 
   const selectedEvent = events.find((event) => event.id === selectedId);
   const years = [...new Set(events.map((event) => event.year).filter(Boolean))].sort((a, b) => b - a);
@@ -117,12 +112,25 @@ export function EventsArchive({ data }: { data: RawArchive }) {
   const goHome = () => { location.hash = "home"; setSelectedId(""); };
 
   if (selectedEvent) {
-    const media = selectedEvent.media.filter((item) => mediaFilter === "all" || item.kind === mediaFilter);
+    const eventFolder = data.nodes.find((node) => node.id === selectedEvent.id)!;
+    const descendants = data.nodes.filter((node) => node.type === "folder" && (node.folderIds ? node.folderIds.includes(eventFolder.id) : [...eventFolder.path, eventFolder.name].every((part, index) => node.path[index] === part)));
+    const currentFolder = descendants.find((node) => node.id === selectedFolderId) || eventFolder;
+    const children = childrenForFolder(data, currentFolder);
+    const folders = children.filter((node) => node.type === "folder").sort((a, b) => a.name.localeCompare(b.name, "en", { numeric: true }));
+    const media = sortMedia(children.filter((node) => node.type === "file")).map((node) => ({ ...node, kind: kindOf(node.mimeType) })).filter((item) => mediaFilter === "all" || item.kind === mediaFilter);
+    const ancestors = [eventFolder, ...descendants.filter((node) => currentFolder.folderIds ? currentFolder.folderIds.includes(node.id) : node.path.length < currentFolder.path.length && [...node.path, node.name].every((part, index) => currentFolder.path[index] === part))].sort((a, b) => a.path.length - b.path.length);
+    const navigateFolder = (folder: RawNode) => { location.hash = folder.id === eventFolder.id ? `event/${eventFolder.id}` : `event/${eventFolder.id}/folder/${folder.id}`; };
     return <main id="top"><Header events={events.length} media={totalMedia} updated={data.generatedAt} />
       <section className="event-page"><header className="member-gallery-head"><button onClick={goHome}>← ALL EVENTS</button><div><span>{formatDate(selectedEvent.date)} / EVENT</span><h2>{selectedEvent.title}</h2></div><a href={folderUrl(selectedEvent.id)} target="_blank" rel="noreferrer">OPEN FOLDER ↗</a></header>
-        <div className="member-filters"><label>MEDIA TYPE<select value={mediaFilter} onChange={(event) => setMediaFilter(event.target.value)}><option value="all">ALL MEDIA</option><option value="video">VIDEO</option><option value="image">PHOTOS</option><option value="audio">AUDIO</option><option value="other">OTHER FILES</option></select></label><div className="blank-filter" /><p>{media.length} RESULTS</p></div>
+        <nav className="folder-breadcrumbs" aria-label="Folder path">{ancestors.filter((folder) => folder.id !== currentFolder.id).map((folder) => <button key={folder.id} onClick={() => navigateFolder(folder)}>{folder.name} →</button>)}<span aria-current="page">{currentFolder.name}</span></nav>
+        {folders.length > 0 && <section className="subfolders" aria-label="Subfolders">{folders.map((folder) => {
+          const files = sortMedia(filesForFolder(data, folder));
+          const cover = photoCover(files);
+          return <button className="folder-card" key={folder.id} onClick={() => navigateFolder(folder)}><DriveThumbnail id={cover?.id} label={folder.name} /><strong>{folder.name}</strong><span>{files.length} FILES · OPEN FOLDER →</span></button>;
+        })}</section>}
+        <div className="member-filters"><label>MEDIA TYPE<select value={mediaFilter} onChange={(event) => setMediaFilter(event.target.value)}><option value="all">ALL MEDIA</option><option value="video">VIDEO</option><option value="image">PHOTOS</option><option value="audio">AUDIO</option><option value="other">OTHER FILES</option></select></label><div className="blank-filter" /><p>{media.length} RESULTS · OLDEST FIRST</p></div>
         <div className="member-period"><p>MEDIA GALLERY</p><span>GOOGLE DRIVE SOURCE</span></div>
-        {media.length ? <div className="media-grid">{media.map((item) => <MediaTile key={item.id} media={item} />)}</div> : <div className="empty"><strong>NO MEDIA</strong>THIS EVENT FOLDER IS CURRENTLY EMPTY.</div>}
+        {media.length ? <div className="media-grid">{media.map((item) => <MediaTile key={item.id} media={item} />)}</div> : <div className="empty"><strong>NO MEDIA</strong>{folders.length ? "OPEN A SUBFOLDER TO SEE ITS MEDIA." : mediaFilter === "all" ? "THIS FOLDER IS CURRENTLY EMPTY." : "NO FILES MATCH THIS MEDIA TYPE."}</div>}
       </section><Footer sourceId={data.sourceFolderId} /></main>;
   }
 

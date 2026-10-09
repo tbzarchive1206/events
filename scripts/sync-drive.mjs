@@ -11,7 +11,7 @@ async function listFolder(folderId) {
   do {
     const params = new URLSearchParams({
       q: `'${folderId}' in parents and trashed = false`,
-      fields: "nextPageToken,files(id,name,mimeType,size,createdTime,modifiedTime)",
+      fields: "nextPageToken,files(id,name,mimeType,size,createdTime,modifiedTime,imageMediaMetadata(time))",
       pageSize: "1000", orderBy: "name", supportsAllDrives: "true", includeItemsFromAllDrives: "true",
     });
     if (pageToken) params.set("pageToken", pageToken);
@@ -35,6 +35,7 @@ while (frontier.length) {
       const isFolder = file.mimeType === "application/vnd.google-apps.folder";
       const node = { id: file.id, name: file.name, mimeType: file.mimeType, type: isFolder ? "folder" : "file", size: file.size || null, createdTime: file.createdTime || null, modifiedTime: file.modifiedTime || null, path: [...folder.path, folder.title] };
       node.folderIds = [...folder.folderIds, folder.id];
+      if (file.imageMediaMetadata?.time) node.imageMediaMetadata = { time: file.imageMediaMetadata.time };
       nodes.push(node);
       if (isFolder) next.push({ id: file.id, title: file.name, path: node.path, folderIds: node.folderIds });
     }
