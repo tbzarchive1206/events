@@ -55,7 +55,7 @@ function DriveThumbnail({ id, label }: { id?: string; label: string }) {
 
 export function MediaViewer({ media, close }: { media: Media; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const dimensions = media.kind === "video" ? media.videoMediaMetadata : media.imageMediaMetadata;
+  const dimensions = media.imageMediaMetadata;
   const ratio = dimensions?.width && dimensions?.height ? dimensions.width / dimensions.height : undefined;
   useEffect(() => {
     const element = dialog.current!;
@@ -67,16 +67,17 @@ export function MediaViewer({ media, close }: { media: Media; close: () => void 
   return <dialog ref={dialog} className="media-dialog" aria-label={media.name} onCancel={close} onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
     <div className="viewer-toolbar"><span>{media.name}</span><button onClick={close} autoFocus aria-label="Close media viewer">CLOSE ×</button></div>
     <div className={`viewer-stage ${ratio ? "known-ratio" : "unknown-ratio"}`} style={ratio ? { "--media-ratio": ratio } as CSSProperties : undefined}>
-      {media.kind === "video" ? <iframe className="viewer-video" src={`https://drive.google.com/file/d/${encodeURIComponent(media.id)}/preview`} title={`Play ${media.name}`} allow="autoplay; fullscreen" allowFullScreen /> :
-        <img className="viewer-photo" src={`${thumbnailUrl(media.id).replace("w1200", "w2400")}`} alt={media.name} />}
+      <img className="viewer-photo" src={`${thumbnailUrl(media.id).replace("w1200", "w2400")}`} alt={media.name} />
     </div>
     <div className="viewer-links"><a href={fileUrl(media.id)} target="_blank" rel="noreferrer">OPEN IN DRIVE ↗</a><a href={downloadUrl(media.id)} target="_blank" rel="noreferrer">DOWNLOAD ↓</a></div>
   </dialog>;
 }
 
 export function MediaTile({ media, open = () => {} }: { media: Media; open?: () => void }) {
+  const dimensions = media.videoMediaMetadata;
+  const ratio = dimensions?.width && dimensions?.height && dimensions.width > 0 && dimensions.height > 0 ? dimensions.width / dimensions.height : undefined;
   return <figure className={`media-tile ${media.kind}-tile`}>
-    {media.kind === "video" ? <button className="video-launch" onClick={open} aria-label={`Play ${media.name} in large viewer`}><span className="video-symbol" aria-hidden="true">▶</span><strong>PLAY VIDEO</strong><span>OPEN LARGE PLAYER ↗</span></button> : media.kind === "image" ?
+    {media.kind === "video" ? <a className={`media-visual video-thumbnail${ratio ? " has-dimensions" : ""}`} style={ratio ? { aspectRatio: ratio } : undefined} href={fileUrl(media.id)} target="_blank" rel="noreferrer" aria-label={`Play ${media.name} on Google Drive`}><DriveThumbnail id={media.id} label={media.name} /><span className="play-mark">▶ PLAY ON GOOGLE DRIVE ↗</span></a> : media.kind === "image" ?
       <button className="media-visual photo-launch" onClick={open} aria-label={`Enlarge ${media.name}`}><DriveThumbnail id={media.id} label={media.name} /></button> :
       <a className="media-visual" href={fileUrl(media.id)} target="_blank" rel="noreferrer"><DriveThumbnail label={media.name} /></a>}
     <div className="image-actions"><span className="file-name" title={media.name}>{media.name}</span><span className="file-action-links"><a href={fileUrl(media.id)} target="_blank" rel="noreferrer">VIEW ↗</a><a href={downloadUrl(media.id)} target="_blank" rel="noreferrer">DOWNLOAD ↓</a></span></div>
@@ -93,7 +94,7 @@ function EventCard({ event, open }: { event: ArchiveEvent; open: () => void }) {
     </button>
     <div className="card-info"><span className="eyebrow">{event.members.map(displayMember).join(" · ") || "THE BOYZ EVENT"}</span><h2>{event.title}</h2>
       <div className="meta"><span>YEAR</span><strong>{event.year || "—"}</strong><span>MONTH</span><strong>{event.month ? monthNames[event.month - 1] : "—"}</strong><span>MEDIA</span><strong>{event.media.length} FILES</strong></div>
-      <div className="card-actions">{firstVideo && <button onClick={open}>WATCH ▶</button>}<button onClick={open}>OPEN EVENT →</button></div>
+      <div className="card-actions">{firstVideo && <a href={fileUrl(firstVideo.id)} target="_blank" rel="noreferrer">WATCH ↗</a>}<button onClick={open}>OPEN EVENT →</button></div>
     </div>
   </article>;
 }

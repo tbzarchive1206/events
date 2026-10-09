@@ -19,25 +19,27 @@ test("builds the self-contained Events archive for GitHub Pages", async () => {
   assert.match(script, /ALL MEMBERS/);
   assert.match(script, /drive\.google\.com\/thumbnail/);
   assert.match(script, /Generated preview/);
-  assert.match(script, /\/preview/);
+  assert.match(script, /PLAY ON GOOGLE DRIVE/);
   assert.match(script, /folder-breadcrumbs/);
   assert.doesNotMatch(html, /iframe/iu);
 });
 
-test("renders nested folders and playable inline videos without video thumbnails", async () => {
+test("renders folder tiles without covers, proportional video thumbnails linking to Drive and enlarged photos", async () => {
   const server = await createServer({ server: { middlewareMode: true }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } });
   const previousLocation = globalThis.location;
   try {
     const { EventsArchive, MediaTile, MediaViewer } = await server.ssrLoadModule("/src/EventsArchive.tsx");
-    const video = renderToStaticMarkup(createElement(MediaTile, { media: { id: "video", name: "clip.mp4", mimeType: "video/mp4", type: "file", kind: "video", path: [] } }));
-    assert.match(video, /Play clip.mp4 in large viewer/);
+    const video = renderToStaticMarkup(createElement(MediaTile, { media: { id: "video", name: "clip.mp4", mimeType: "video/mp4", type: "file", kind: "video", path: [], videoMediaMetadata: { width: 1080, height: 1920 } } }));
+    assert.match(video, /Play clip.mp4 on Google Drive/);
+    assert.match(video, /href="https:\/\/drive.google.com\/file\/d\/video\/view"/);
+    assert.match(video, /target="_blank"/);
+    assert.match(video, /thumbnail\?id=video/);
+    assert.match(video, /aspect-ratio:0.5625/);
     assert.doesNotMatch(video, /<iframe/);
-    assert.doesNotMatch(video, /<img|thumbnail\?/);
-    const viewer = renderToStaticMarkup(createElement(MediaViewer, { media: { id: "video", name: "clip.mp4", kind: "video", videoMediaMetadata: { width: 1080, height: 1920 } }, close() {} }));
-    assert.match(viewer, /<dialog/);
-    assert.match(viewer, /https:\/\/drive.google.com\/file\/d\/video\/preview/);
-    assert.match(viewer, /allowFullScreen|allowfullscreen/);
-    assert.match(viewer, /--media-ratio:0.5625/);
+    const landscape = renderToStaticMarkup(createElement(MediaTile, { media: { id: "wide", name: "wide.mp4", kind: "video", videoMediaMetadata: { width: 1920, height: 1080 } } }));
+    assert.match(landscape, /aspect-ratio:1.777/);
+    const unknown = renderToStaticMarkup(createElement(MediaTile, { media: { id: "unknown", name: "unknown.mp4", kind: "video" } }));
+    assert.doesNotMatch(unknown, /aspect-ratio|has-dimensions/);
     const photo = renderToStaticMarkup(createElement(MediaTile, { media: { id: "photo", name: "photo.jpg", kind: "image" } }));
     assert.match(photo, /Enlarge photo.jpg/);
     const photoViewer = renderToStaticMarkup(createElement(MediaViewer, { media: { id: "photo", name: "photo.jpg", kind: "image" }, close() {} }));
@@ -54,8 +56,9 @@ test("renders nested folders and playable inline videos without video thumbnails
     const subfolders = parent.match(/<section class="subfolders"[\s\S]*?<\/section>/)[0];
     assert.doesNotMatch(subfolders, /<img|generated-thumbnail/);
     assert.match(subfolders, /Photos/);
-    assert.match(parent, /Play clip.mp4 in large viewer/);
-    assert.doesNotMatch(parent, /thumbnail\?id=video/);
+    assert.match(parent, /Play clip.mp4 on Google Drive/);
+    assert.match(parent, /thumbnail\?id=video/);
+    assert.doesNotMatch(parent, /<iframe/);
     globalThis.location = { hash: "#event/event/folder/photos" };
     const nested = renderToStaticMarkup(createElement(EventsArchive, { data }));
     assert.match(nested, /aria-current="page">Photos/);
