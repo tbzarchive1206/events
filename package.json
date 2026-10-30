@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.16.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/export-search.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "pnpm run build && node --test tests/rendered-html.test.mjs tests/archive-tools.test.mjs tests/sync-drive.test.mjs",
-    "sync:drive": "node scripts/sync-drive.mjs"
+    "sync:drive": "node scripts/sync-drive.mjs",
+    "export:search": "node scripts/export-search.mjs"
   },
   "dependencies": {
     "react": "19.2.6",

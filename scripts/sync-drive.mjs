@@ -11,7 +11,7 @@ async function listFolder(folderId) {
   do {
     const params = new URLSearchParams({
       q: `'${folderId}' in parents and trashed = false`,
-      fields: "nextPageToken,files(id,name,mimeType,size,createdTime,modifiedTime,imageMediaMetadata(time,width,height),videoMediaMetadata(width,height))",
+      fields: "nextPageToken,files(id,name,description,mimeType,size,createdTime,modifiedTime,imageMediaMetadata(time,width,height),videoMediaMetadata(width,height))",
       pageSize: "1000", orderBy: "name", supportsAllDrives: "true", includeItemsFromAllDrives: "true",
     });
     if (pageToken) params.set("pageToken", pageToken);
@@ -33,7 +33,7 @@ while (frontier.length) {
     const results = await Promise.all(batch.map(async (folder) => ({ folder, files: await listFolder(folder.id) })));
     for (const { folder, files } of results) for (const file of files) {
       const isFolder = file.mimeType === "application/vnd.google-apps.folder";
-      const node = { id: file.id, name: file.name, mimeType: file.mimeType, type: isFolder ? "folder" : "file", size: file.size || null, createdTime: file.createdTime || null, modifiedTime: file.modifiedTime || null, path: [...folder.path, folder.title] };
+      const node = { id: file.id, name: file.name, description: file.description || "", mimeType: file.mimeType, type: isFolder ? "folder" : "file", size: file.size || null, createdTime: file.createdTime || null, modifiedTime: file.modifiedTime || null, path: [...folder.path, folder.title] };
       node.folderIds = [...folder.folderIds, folder.id];
       if (file.imageMediaMetadata) node.imageMediaMetadata = file.imageMediaMetadata;
       if (file.videoMediaMetadata) node.videoMediaMetadata = file.videoMediaMetadata;
