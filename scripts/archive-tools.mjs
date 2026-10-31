@@ -19,7 +19,9 @@ export function childrenForFolder(raw, folder) {
 }
 
 export function photoCover(media) {
-  return media.find((item) => item.mimeType.startsWith("image/")) || null;
+  return media.find((item) => item.mimeType.startsWith("image/") &&
+    item.imageMediaMetadata?.width > item.imageMediaMetadata?.height &&
+    item.imageMediaMetadata?.height > 0) || null;
 }
 
 export function mediaTime(node) {

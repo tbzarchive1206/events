@@ -46,6 +46,34 @@ function representative(event: ArchiveEvent) {
   return photoCover(event.media);
 }
 
+// Older snapshots may lack image dimensions. Probe actual images before showing
+// them as covers; a video, portrait, or square image is never used as a cover.
+function LandscapeThumbnail({ media, preferredId, label }: { media: Media[]; preferredId?: string; label: string }) {
+  const [source, setSource] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setSource("");
+    const candidates = media.filter((item) => item.kind === "image" &&
+      (!item.imageMediaMetadata?.width || !item.imageMediaMetadata?.height || item.imageMediaMetadata.width > item.imageMediaMetadata.height))
+      .sort((a, b) => Number(b.id === preferredId) - Number(a.id === preferredId));
+    let index = 0;
+    function tryNext() {
+      if (cancelled || index >= candidates.length) return;
+      const image = new Image();
+      image.onload = () => {
+        if (cancelled) return;
+        if (image.naturalWidth > image.naturalHeight) setSource(image.src);
+        else tryNext();
+      };
+      image.onerror = tryNext;
+      image.src = thumbnailUrl(candidates[index++].id);
+    }
+    tryNext();
+    return () => { cancelled = true; };
+  }, [media, preferredId]);
+  return source ? <img src={source} alt="" /> : <span className="generated-thumbnail" role="img" aria-label={`Preview: ${label}`}><span>{label}</span></span>;
+}
+
 function DriveThumbnail({ id, label }: { id?: string; label: string }) {
   const [failed, setFailed] = useState(!id);
   useEffect(() => setFailed(!id), [id]);
@@ -89,7 +117,7 @@ function EventCard({ event, open }: { event: ArchiveEvent; open: () => void }) {
   const firstVideo = event.media.find((item) => item.kind === "video");
   return <article className="card">
     <button className="thumb" onClick={open} aria-label={`Open ${event.title}`}>
-      <DriveThumbnail id={cover?.id} label={event.title} />
+      <LandscapeThumbnail media={event.media} preferredId={cover?.id} label={event.title} />
       <span className="number">{formatDate(event.date)}</span><span className="photo-count">{event.media.length} FILES</span>
     </button>
     <div className="card-info"><span className="eyebrow">{event.members.map(displayMember).join(" · ") || "THE BOYZ EVENT"}</span><h2>{event.title}</h2>

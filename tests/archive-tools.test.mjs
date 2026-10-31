@@ -43,10 +43,13 @@ test("folder navigation preserves each level, including empty folders and legacy
 
 test("gallery covers always use a photo, including video-only and empty events", () => {
   const video = { id: "v", mimeType: "video/mp4" };
-  const photo = { id: "p", mimeType: "image/jpeg" };
+    const photo = { id: "p", mimeType: "image/jpeg", imageMediaMetadata: { width: 1600, height: 900 } };
   assert.equal(photoCover([video, photo]), photo);
   assert.equal(photoCover([video]), null);
   assert.equal(photoCover([]), null);
+    assert.equal(photoCover([{ id: "portrait", mimeType: "image/jpeg", imageMediaMetadata: { width: 900, height: 1600 } }, photo]), photo);
+    assert.equal(photoCover([{ id: "square", mimeType: "image/jpeg", imageMediaMetadata: { width: 900, height: 900 } }]), null);
+    assert.equal(photoCover([{ id: "unknown", mimeType: "image/jpeg" }]), null);
 });
 
 test("media are chronological with stable natural filename order when dates are absent", () => {
